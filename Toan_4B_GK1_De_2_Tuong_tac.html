@@ -181,4 +181,33 @@ function showFeedback(t,good){$('feedback').textContent=t;$('feedback').classNam
 function updateHeader(){$('score').textContent='Điểm tự chấm: '+fmt(earned())+' / 10'}
 function showResult(){let complete=groups.every((_,g)=>completeGroup(g));/* Cho phép xem điểm hiện tại ngay cả khi chưa làm xong tất cả câu. */let name=$('student').value.trim();$('studentResult').textContent=name?'Học sinh: '+name:'Học sinh chưa nhập họ tên';$('finalScore').textContent=fmt(earned())+' / 10 điểm';$('finalSummary').textContent='Đã hoàn thành '+groups.filter((_,g)=>completeGroup(g)).length+'/17 câu. Câu 17 được chấm tự động theo ba phép tính và ba câu trả lời. Tổng điểm tối đa: 10. Em có thể quay lại bằng nút “Tiếp tục làm bài”.';$('result').classList.remove('hidden');$('exam').classList.add('hidden');let old=$('resume');if(old)old.remove();let resume=document.createElement('button');resume.id='resume';resume.className='secondary';resume.style.marginLeft='10px';resume.textContent='Tiếp tục làm bài';resume.onclick=()=>{$('result').classList.add('hidden');$('exam').classList.remove('hidden');draw()};$('restart').after(resume);$('result').scrollIntoView({behavior:'smooth'})}
 $('restart').onclick=()=>{if(confirm('Làm lại sẽ xóa điểm và câu trả lời hiện tại. Em có muốn bắt đầu bài mới không?'))reset()};reset();
+
+/* sheetSubmissionV1 */
+(function(){
+const endpoint="https://script.google.com/macros/s/AKfycbxiLyTMNVdJ5Djr2AM6THl8HYxcs2u3pLmXB3d2yatCWn7NUs1rhzgdCI7xAGA8TCdF/exec", examName="GK1 – Đề 2";
+let submitted=false;
+const resultBox=document.getElementById('result');
+const sendBtn=document.createElement('button');
+sendBtn.type='button';sendBtn.className='primary';sendBtn.id='sendToSheet';sendBtn.textContent='📤 Nộp kết quả cho cô';sendBtn.style.margin='12px 8px 12px 0';
+const status=document.createElement('p');status.id='sheetStatus';status.setAttribute('role','status');status.style.fontWeight='600';
+const restartBtn=document.getElementById('restart');restartBtn.parentNode.insertBefore(sendBtn,restartBtn);restartBtn.parentNode.insertBefore(status,restartBtn);
+sendBtn.onclick=async function(){
+ if(submitted)return;
+ const name=document.getElementById('student').value.trim();
+ if(!name){status.textContent='Em cần nhập họ và tên trước khi nộp.';return;}
+ const completed=groups.filter((_,g)=>completeGroup(g)).length;
+ if(!confirm('Em đã hoàn thành '+completed+'/17 câu, được '+fmt(earned())+'/10 điểm. Các câu chưa hoàn thành tính 0 điểm. Em chắc chắn muốn nộp bài và kết thúc lượt làm này?'))return;
+ sendBtn.disabled=true;status.textContent='Đang gửi kết quả...';
+ try{
+  await fetch(endpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({hoTen:name,deSo:examName,diem:earned(),soCauHoanThanh:completed,tongSoCau:17})});
+  submitted=true;sendBtn.textContent='✓ Đã gửi yêu cầu nộp bài';
+  document.getElementById('exam').style.pointerEvents='none';
+  document.getElementById('student').readOnly=true;
+  const resume=document.getElementById('resume');if(resume)resume.remove();
+  document.querySelectorAll('#nav button').forEach(b=>b.disabled=true);
+  status.textContent='Đã gửi yêu cầu. Bài đã khóa. Cô sẽ kiểm tra trang tính KetQua để xác nhận đã lưu. Nhấn Làm bài mới để bắt đầu lượt khác.';
+ }catch(err){sendBtn.disabled=false;status.textContent='Chưa gửi được. Em kiểm tra kết nối mạng và thử lại.';}
+};
+restartBtn.addEventListener('click',()=>{submitted=false;sendBtn.disabled=false;sendBtn.textContent='📤 Nộp kết quả cho cô';status.textContent='';document.getElementById('exam').style.pointerEvents='';document.getElementById('student').readOnly=false;});
+})();
 </script></body></html>
